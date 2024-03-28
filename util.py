@@ -1,4 +1,5 @@
 import random as rand
+import copy
 
 def getRandomNumber(done, order):
     numberToStore = rand.randint(1, order * order)
@@ -50,13 +51,15 @@ def generatePuzzle():
 
 def getPopulations(puzzle, startPos):
     population = []
+    toAppend = []
 
     for i in range(len(puzzle)):
         for j in range(len(puzzle)):
 
             # swap the elements
             puzzle[i][j], puzzle[startPos[0]][startPos[1]] = puzzle[startPos[0]][startPos[1]], puzzle[i][j] 
-            population.append(puzzle)
+            toAppend = copy.deepcopy(puzzle)
+            population.append(toAppend)
 
             # swap again to default position
             puzzle[i][j], puzzle[startPos[0]][startPos[1]] = puzzle[startPos[0]][startPos[1]], puzzle[i][j]
@@ -96,9 +99,31 @@ def getFitness(chromo):
 
     return rowScore + colScore + diag1Score + diag2Score
 
+def selection(pop, fitness):
+    total = sum(fitness)
+    r = rand.uniform(0, total)
+    partial_sum = 0
+    for i in range(len(pop)):
+        partial_sum += fitness[i]
+        if partial_sum > r:
+            chromo1 = pop[i]
+            break
+    total = sum(fitness)
+    r = rand.uniform(0, total)
+    partial_sum = 0
+    for i in range(len(pop)):
+        partial_sum += fitness[i]
+        if partial_sum > r:
+            chromo2 = pop[i]
+            break
+
+    return chromo1, chromo2
+
 def solvePuzzle(puzzle, startPos):
     # generate a population by swaping the square with all the empty squares one by one
     population = getPopulations(puzzle, startPos)
 
     for i in range(100): # run for 100 generations
         fitness = [getFitness(chromo) for chromo in population] # get fitness for all chromosomes
+
+        chromo1, chromo2 = selection(population, fitness)
