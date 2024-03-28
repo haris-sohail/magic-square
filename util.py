@@ -9,9 +9,31 @@ def getRandomNumber(done, order):
     return numberToStore
 
 def showPuzzle(puzzle):
+    n = len(puzzle)
+    m = len(puzzle[0])
+
+    # Print the puzzle
     print('\n')
     for row in puzzle:
         print(" | ".join(map(str, row)))
+
+    # Calculate and print the sum of each row
+    for i, row in enumerate(puzzle):
+        row_sum = sum(row)
+        print(f"Sum of Row {i + 1}: {row_sum}")
+
+    # Calculate and print the sum of each column
+    for j in range(m):
+        col_sum = sum(puzzle[i][j] for i in range(n))
+        print(f"Sum of Column {j + 1}: {col_sum}")
+
+    # Calculate and print the sum of the main diagonal
+    main_diag_sum = sum(puzzle[i][i] for i in range(min(n, m)))
+    print(f"Sum of Main Diagonal: {main_diag_sum}")
+
+    # Calculate and print the sum of the reverse diagonal
+    reverse_diag_sum = sum(puzzle[i][m - 1 - i] for i in range(min(n, m)))
+    print(f"Sum of Reverse Diagonal: {reverse_diag_sum}")
 
     print('\n')
     
@@ -119,11 +141,106 @@ def selection(pop, fitness):
 
     return chromo1, chromo2
 
+def insertInOffspring(insertInd, toInsert, offSpring):
+    if(offSpring[insertInd[0]][insertInd[1]]):
+        # insert in any random position if not occupied
+        insertX = rand.randint(0, order - 1)
+        insertY = rand.randint(0, order - 1)
+
+        while(offSpring[insertX][insertY] != None):
+            insertX = rand.randint(0, order - 1)
+            insertY = rand.randint(0, order - 1)
+
+        offSpring[insertX][insertY] = toInsert
+
+
+    else:
+        offSpring[insertInd[0]][insertInd[1]] = toInsert
+
+    return offSpring
+
+def getEmptyList(n, m):
+    empty_list = [[None] * m for _ in range(n)]
+    return empty_list
+
+def crossover(chromo1, chromo2):
+    offspring1 = getEmptyList(order, order)
+    offspring2 = getEmptyList(order, order)
+    square = 1
+
+    for i in range(len(chromo1)):
+        for j in range(len(chromo1)):
+            if(rand.random() < 0.5):
+                # find the position of square in chromosome 1 
+                insertInd = find_element_position_2d(chromo1, square)
+            else:
+                # find the position of square in chromosome 2
+                insertInd = find_element_position_2d(chromo2, square)
+
+            insertInOffspring(insertInd, square, offspring1)
+            insertInOffspring(insertInd, square, offspring2)
+
+            square += 1
+
+
+
+    return offspring1, offspring2
+
+def mutation(chromo):
+    # pick two random indices from the chromosome and swap them
+    randSquare1 = rand.randint(1, (order * order))
+    randSquare2 = rand.randint(1, (order * order))
+
+    randSquare1Ind = find_element_position_2d(chromo, randSquare1)
+    randSquare2Ind = find_element_position_2d(chromo, randSquare2)
+
+    # swap
+    chromo[randSquare1Ind[0]][randSquare1Ind[1]], chromo[randSquare2Ind[0]][randSquare2Ind[1]] = \
+    chromo[randSquare2Ind[0]][randSquare2Ind[1]], chromo[randSquare1Ind[0]][randSquare1Ind[1]]
+
+    return chromo
+
+
 def solvePuzzle(puzzle, startPos):
     # generate a population by swaping the square with all the empty squares one by one
     population = getPopulations(puzzle, startPos)
-
-    for i in range(100): # run for 100 generations
+    i = None
+    for i in range(1000): # run for n generations
         fitness = [getFitness(chromo) for chromo in population] # get fitness for all chromosomes
 
-        chromo1, chromo2 = selection(population, fitness)
+        chromo1, chromo2 = selection(population, fitness) # selection for crossover
+
+        offspring1, offspring2 = crossover(chromo1, chromo2)
+
+        # mutate both offsprings
+
+        offspring1 = mutation(offspring1)
+
+        offspring2 = mutation(offspring2)
+
+        # replace the two worst chromosomes with the new offsprings
+
+        worst_idx1 = fitness.index(max(fitness))
+
+        population[worst_idx1] = offspring1
+
+        fitness[worst_idx1] = getFitness(offspring1)
+
+        worst_idx2 = fitness.index(max(fitness))
+
+        population[worst_idx2] = offspring2
+
+        fitness[worst_idx2] = getFitness(offspring2)
+
+        # if fitness is 0 break the loop
+        if(min(fitness) == 0):
+            break
+        
+
+    # get the chromosome with the lowest fitness
+    best_idx = fitness.index(min(fitness))
+    showPuzzle(population[best_idx])
+    print("Fitness: ", fitness[best_idx])
+    print("Solution found after ", i, " generations")
+
+
